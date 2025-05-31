@@ -1,5 +1,7 @@
 package com.example.hackaton_chat.controller;
 
+import com.example.hackaton_chat.dto.ChatMessage;
+import com.example.hackaton_chat.dto.GroupChatMessage;
 import com.example.hackaton_chat.model.Message;
 import com.example.hackaton_chat.model.User;
 import com.example.hackaton_chat.model.GroupChat;
@@ -61,66 +63,6 @@ public class ChatWebSocketController {
                 chatMessage.getSenderUsername(),
                 e.getMessage()
             );
-        }
-    }
-
-    private static class ChatMessage {
-        private String senderUsername;
-        private String receiverUsername;
-        private String content;
-
-        public String getSenderUsername() {
-            return senderUsername;
-        }
-
-        public void setSenderUsername(String senderUsername) {
-            this.senderUsername = senderUsername;
-        }
-
-        public String getReceiverUsername() {
-            return receiverUsername;
-        }
-
-        public void setReceiverUsername(String receiverUsername) {
-            this.receiverUsername = receiverUsername;
-        }
-
-        public String getContent() {
-            return content;
-        }
-
-        public void setContent(String content) {
-            this.content = content;
-        }
-    }
-
-    private static class GroupChatMessage {
-        private String senderUsername;
-        private Long groupId;
-        private String content;
-
-        public String getSenderUsername() {
-            return senderUsername;
-        }
-
-        public void setSenderUsername(String senderUsername) {
-            this.senderUsername = senderUsername;
-        }
-
-        public Long getGroupId() {
-            return groupId;
-        }
-
-        public void setGroupId(Long groupId) {
-            this.groupId = groupId;
-        }
-
-        public String getContent() {
-            return content;
-        }
-
-        public void setContent(String content) {
-            this.content = content;
         }
     }
 } 

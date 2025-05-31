@@ -1,5 +1,9 @@
 package com.example.hackaton_chat.controller;
 
+import com.example.hackaton_chat.dto.AddContactRequest;
+import com.example.hackaton_chat.dto.ContactCheckResponse;
+import com.example.hackaton_chat.dto.ContactResponse;
+import com.example.hackaton_chat.dto.RemoveContactRequest;
 import com.example.hackaton_chat.model.User;
 import com.example.hackaton_chat.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,73 +87,6 @@ public class ContactController {
             return ResponseEntity.ok(new ContactCheckResponse(isContact));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    // Request/Response DTOs
-    private static class AddContactRequest {
-        private String contactUsername;
-
-        public String getContactUsername() {
-            return contactUsername;
-        }
-
-        public void setContactUsername(String contactUsername) {
-            this.contactUsername = contactUsername;
-        }
-    }
-
-    private static class RemoveContactRequest {
-        private String contactUsername;
-
-        public String getContactUsername() {
-            return contactUsername;
-        }
-
-        public void setContactUsername(String contactUsername) {
-            this.contactUsername = contactUsername;
-        }
-    }
-
-    private static class ContactResponse {
-        private Long id;
-        private String username;
-
-        public ContactResponse(Long id, String username) {
-            this.id = id;
-            this.username = username;
-        }
-
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-    }
-
-    private static class ContactCheckResponse {
-        private boolean isContact;
-
-        public ContactCheckResponse(boolean isContact) {
-            this.isContact = isContact;
-        }
-
-        public boolean isContact() {
-            return isContact;
-        }
-
-        public void setContact(boolean contact) {
-            isContact = contact;
         }
     }
 } 

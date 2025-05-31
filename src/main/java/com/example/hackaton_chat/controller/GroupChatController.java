@@ -1,5 +1,10 @@
 package com.example.hackaton_chat.controller;
 
+import com.example.hackaton_chat.dto.AddParticipantRequest;
+import com.example.hackaton_chat.dto.CreateGroupRequest;
+import com.example.hackaton_chat.dto.GroupResponse;
+import com.example.hackaton_chat.dto.RemoveParticipantRequest;
+import com.example.hackaton_chat.dto.UserResponse;
 import com.example.hackaton_chat.model.GroupChat;
 import com.example.hackaton_chat.model.User;
 import com.example.hackaton_chat.service.GroupChatService;
@@ -107,114 +112,6 @@ public class GroupChatController {
             return ResponseEntity.ok("Group deleted successfully");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    // Request/Response DTOs
-    private static class CreateGroupRequest {
-        private String name;
-        private String ownerUsername;
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getOwnerUsername() {
-            return ownerUsername;
-        }
-
-        public void setOwnerUsername(String ownerUsername) {
-            this.ownerUsername = ownerUsername;
-        }
-    }
-
-    private static class AddParticipantRequest {
-        private String username;
-
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-    }
-
-    private static class RemoveParticipantRequest {
-        private String username;
-
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-    }
-
-    private static class GroupResponse {
-        private Long id;
-        private String name;
-        private String ownerUsername;
-
-        public GroupResponse(Long id, String name, String ownerUsername) {
-            this.id = id;
-            this.name = name;
-            this.ownerUsername = ownerUsername;
-        }
-
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getOwnerUsername() {
-            return ownerUsername;
-        }
-
-        public void setOwnerUsername(String ownerUsername) {
-            this.ownerUsername = ownerUsername;
-        }
-    }
-
-    private static class UserResponse {
-        private Long id;
-        private String username;
-
-        public UserResponse(Long id, String username) {
-            this.id = id;
-            this.username = username;
-        }
-
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
         }
     }
 } 
