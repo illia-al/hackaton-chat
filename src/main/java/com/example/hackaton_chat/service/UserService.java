@@ -69,7 +69,6 @@ public class UserService {
         userContactRepository.save(new UserContact(contact.getId(), user.getId()));
 
         // Send WebSocket notifications to both users about the new contact
-        messagingService.notifyContactAdded(user.getUsername(), contactUsername);
         messagingService.notifyContactAdded(contactUsername, user.getUsername());
     }
 
@@ -82,7 +81,6 @@ public class UserService {
         userContactRepository.deleteBidirectionalContact(user.getId(), contact.getId());
 
         // Send WebSocket notifications to both users about the contact removal
-        messagingService.notifyContactRemoved(user.getUsername(), contactUsername);
         messagingService.notifyContactRemoved(contactUsername, user.getUsername());
     }
 

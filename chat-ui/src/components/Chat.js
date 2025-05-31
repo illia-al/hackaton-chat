@@ -123,6 +123,7 @@ function Chat({ user, onLogout }) {
                     // Subscribe to notifications
                     client.subscribe(`/queue/notifications-${user.username}`, (notification) => {
                         const notificationData = JSON.parse(notification.body);
+                        console.log('Notification received:', notificationData);
                         
                         if (notificationData.type === 'GROUP_CREATED') {
                             // Update groups list when a new group is created or user is added to a group
