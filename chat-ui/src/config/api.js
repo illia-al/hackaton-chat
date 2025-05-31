@@ -45,6 +45,9 @@ export const API_ENDPOINTS = {
     
     // Chat
     CHAT_MESSAGES: (username, contactUsername) => `${API_BASE_URL}/api/chat/messages/${username}/${contactUsername}`,
+    SEND_DIRECT_MESSAGE: `${API_BASE_URL}/api/chat/direct`,
+    SEND_GROUP_MESSAGE: (groupId) => `${API_BASE_URL}/api/chat/group/${groupId}/message`,
+    GET_IMAGE: (imageId) => `${API_BASE_URL}/api/chat/image/${imageId}`,
     
     // Groups
     GROUPS: {
@@ -85,6 +88,29 @@ export const apiCall = async (url, options = {}) => {
         return response;
     } catch (error) {
         console.error('API call failed:', error);
+        throw error;
+    }
+};
+
+// Utility function for making multipart form API calls (for file uploads)
+export const apiCallMultipart = async (url, formData, options = {}) => {
+    const defaultOptions = {
+        method: 'POST',
+        body: formData,
+        timeout: API_CONFIG.TIMEOUT,
+        ...options
+    };
+
+    // Don't set Content-Type header for FormData - let browser set it with boundary
+    if (defaultOptions.headers) {
+        delete defaultOptions.headers['Content-Type'];
+    }
+
+    try {
+        const response = await fetch(url, defaultOptions);
+        return response;
+    } catch (error) {
+        console.error('Multipart API call failed:', error);
         throw error;
     }
 };

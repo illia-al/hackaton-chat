@@ -12,7 +12,7 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @ManyToOne
@@ -26,6 +26,10 @@ public class Message {
     @ManyToOne
     @JoinColumn(name = "group_chat_id")
     private GroupChat groupChat;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "image_id")
+    private MessageImage image;
 
     @Column(nullable = false)
     private LocalDateTime timestamp;

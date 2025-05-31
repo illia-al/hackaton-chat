@@ -27,9 +27,21 @@ function ContactsList({
         const contactMessages = allMessages[contactUsername];
         if (contactMessages && contactMessages.length > 0) {
             const lastMessage = contactMessages[contactMessages.length - 1];
-            return lastMessage.content.length > 30 
-                ? lastMessage.content.substring(0, 30) + '...'
-                : lastMessage.content;
+            
+            // Handle messages with content
+            if (lastMessage.content && lastMessage.content.trim()) {
+                return lastMessage.content.length > 30 
+                    ? lastMessage.content.substring(0, 30) + '...'
+                    : lastMessage.content;
+            }
+            
+            // Handle image-only messages
+            if (lastMessage.image) {
+                return '📷 Image';
+            }
+            
+            // Fallback for empty messages
+            return 'Message';
         }
         return 'No messages yet';
     };

@@ -5,7 +5,9 @@ import com.example.hackaton_chat.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -25,8 +27,19 @@ public class ChatService {
     @Autowired
     private GroupChatService groupChatService;
 
+    @Autowired
+    private ImageService imageService;
+
+    @Autowired
+    private MessagingService messagingService;
+
     @Transactional
     public Message sendDirectMessage(User sender, String receiverUsername, String content) {
+        return sendDirectMessage(sender, receiverUsername, content, null);
+    }
+
+    @Transactional
+    public Message sendDirectMessage(User sender, String receiverUsername, String content, MultipartFile image) {
         User receiver = userRepository.findByUsername(receiverUsername)
             .orElseThrow(() -> new RuntimeException("Receiver not found"));
 
@@ -38,7 +51,27 @@ public class ChatService {
         message.setSender(sender);
         message.setReceiver(receiver);
         message.setContent(content);
-        return messageRepository.save(message);
+
+        // Handle image if provided
+        if (image != null && !image.isEmpty()) {
+            try {
+                MessageImage messageImage = imageService.saveImage(image);
+                message.setImage(messageImage);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to save image: " + e.getMessage());
+            }
+        }
+
+        Message savedMessage = messageRepository.save(message);
+
+        // Send RabbitMQ notification for real-time messaging
+        messagingService.sendDirectMessage(savedMessage, sender.getUsername(), receiverUsername);
+        
+        // Send specific notifications for message events
+        messagingService.notifyMessageSent(sender.getUsername(), savedMessage);
+        messagingService.notifyMessageReceived(receiverUsername, savedMessage);
+
+        return savedMessage;
     }
 
     @Transactional
@@ -70,6 +103,11 @@ public class ChatService {
 
     @Transactional
     public Message sendGroupMessage(User sender, Long groupId, String content) {
+        return sendGroupMessage(sender, groupId, content, null);
+    }
+
+    @Transactional
+    public Message sendGroupMessage(User sender, Long groupId, String content, MultipartFile image) {
         GroupChat groupChat = groupChatRepository.findById(groupId)
             .orElseThrow(() -> new RuntimeException("Group chat not found"));
 
@@ -86,7 +124,27 @@ public class ChatService {
         message.setSender(sender);
         message.setGroupChat(groupChat);
         message.setContent(content);
-        return messageRepository.save(message);
+
+        // Handle image if provided
+        if (image != null && !image.isEmpty()) {
+            try {
+                MessageImage messageImage = imageService.saveImage(image);
+                message.setImage(messageImage);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to save image: " + e.getMessage());
+            }
+        }
+
+        Message savedMessage = messageRepository.save(message);
+
+        // Send RabbitMQ notification for real-time group messaging
+        messagingService.sendGroupMessage(savedMessage, groupId);
+        
+        // Send specific notifications for group message events
+        messagingService.notifyGroupMessageSent(sender.getUsername(), savedMessage, groupChat);
+        messagingService.notifyGroupMessageReceived(participants, savedMessage, groupChat);
+
+        return savedMessage;
     }
 
     @Transactional

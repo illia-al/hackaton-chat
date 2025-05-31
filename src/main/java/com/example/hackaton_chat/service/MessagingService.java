@@ -2,6 +2,7 @@ package com.example.hackaton_chat.service;
 
 import com.example.hackaton_chat.model.GroupChat;
 import com.example.hackaton_chat.model.User;
+import com.example.hackaton_chat.model.Message;
 import com.example.hackaton_chat.dto.Notification;
 import com.example.hackaton_chat.dto.NotificationType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,12 +97,6 @@ public class MessagingService {
             "/queue/messages-" + receiverUsername,
             message
         );
-        
-        // Send message to sender as well for real-time confirmation
-        messagingTemplate.convertAndSend(
-            "/queue/messages-" + senderUsername,
-            message
-        );
     }
 
     // Send group message via WebSocket
@@ -112,6 +107,81 @@ public class MessagingService {
         );
     }
 
+    // Send message received notification
+    public void notifyMessageReceived(String receiverUsername, Message message) {
+        Notification notification = Notification.createMessageNotification(
+            NotificationType.MESSAGE_RECEIVED,
+            message.getId(),
+            message.getSender().getUsername(),
+            getMessagePreview(message),
+            message.getImage() != null
+        );
+        
+        messagingTemplate.convertAndSend(
+            "/queue/notifications-" + receiverUsername,
+            notification
+        );
+    }
+
+    // Send message sent notification
+    public void notifyMessageSent(String senderUsername, Message message) {
+        Notification notification = Notification.createMessageNotification(
+            NotificationType.MESSAGE_SENT,
+            message.getId(),
+            message.getSender().getUsername(),
+            getMessagePreview(message),
+            message.getImage() != null
+        );
+        
+        messagingTemplate.convertAndSend(
+            "/queue/notifications-" + senderUsername,
+            notification
+        );
+    }
+
+    // Send group message received notification
+    public void notifyGroupMessageReceived(List<User> participants, Message message, GroupChat group) {
+        String senderUsername = message.getSender().getUsername();
+        
+        for (User participant : participants) {
+            // Don't send notification to the sender
+            if (!participant.getUsername().equals(senderUsername)) {
+                Notification notification = Notification.createGroupMessageNotification(
+                    NotificationType.GROUP_MESSAGE_RECEIVED,
+                    message.getId(),
+                    senderUsername,
+                    getMessagePreview(message),
+                    message.getImage() != null,
+                    group.getId(),
+                    group.getName()
+                );
+                
+                messagingTemplate.convertAndSend(
+                    "/queue/notifications-" + participant.getUsername(),
+                    notification
+                );
+            }
+        }
+    }
+
+    // Send group message sent notification
+    public void notifyGroupMessageSent(String senderUsername, Message message, GroupChat group) {
+        Notification notification = Notification.createGroupMessageNotification(
+            NotificationType.GROUP_MESSAGE_SENT,
+            message.getId(),
+            senderUsername,
+            getMessagePreview(message),
+            message.getImage() != null,
+            group.getId(),
+            group.getName()
+        );
+        
+        messagingTemplate.convertAndSend(
+            "/queue/notifications-" + senderUsername,
+            notification
+        );
+    }
+
     // Send error message to user
     public void sendErrorToUser(String username, String error) {
         messagingTemplate.convertAndSendToUser(
@@ -119,5 +189,17 @@ public class MessagingService {
             "/queue/errors",
             error
         );
+    }
+
+    // Helper method to create message preview for notifications
+    private String getMessagePreview(Message message) {
+        if (message.getContent() != null && !message.getContent().trim().isEmpty()) {
+            return message.getContent().length() > 50 
+                ? message.getContent().substring(0, 50) + "..."
+                : message.getContent();
+        } else if (message.getImage() != null) {
+            return "📷 Image";
+        }
+        return "Message";
     }
 } 

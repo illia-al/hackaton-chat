@@ -4,12 +4,14 @@ import SockJS from 'sockjs-client';
 import ContactsList from './ContactsList';
 import GroupChatsList from './GroupChatsList';
 import { useNotifications } from '../contexts/NotificationContext';
-import { API_ENDPOINTS, apiCall } from '../config/api';
+import { API_ENDPOINTS, apiCall, apiCallMultipart } from '../config/api';
 import './Chat.css';
 
 function Chat({ user, onLogout }) {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
     const [selectedContact, setSelectedContact] = useState(null);
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [selectedGroupInfo, setSelectedGroupInfo] = useState(null);
@@ -22,6 +24,7 @@ function Chat({ user, onLogout }) {
     const selectedContactRef = useRef(null);
     const selectedGroupRef = useRef(null);
     const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     // Use global notification system
     const { showNotification } = useNotifications();
@@ -41,6 +44,44 @@ function Chat({ user, onLogout }) {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    // Handle image selection
+    const handleImageSelect = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showNotification('Please select a valid image file (JPEG, PNG, GIF, WebP)', 'error');
+                return;
+            }
+
+            // Validate file size (10MB limit)
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxSize) {
+                showNotification('Image size must be less than 10MB', 'error');
+                return;
+            }
+
+            setSelectedImage(file);
+            
+            // Create preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setImagePreview(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // Clear selected image
+    const clearImage = () => {
+        setSelectedImage(null);
+        setImagePreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
 
     // Load user groups
     const loadGroups = async () => {
@@ -374,47 +415,84 @@ function Chat({ user, onLogout }) {
         });
     };
 
-    const handleSendMessage = () => {
-        if (!newMessage.trim()) return;
+    const handleSendMessage = async () => {
+        // Check if we have either text or image
+        if (!newMessage.trim() && !selectedImage) return;
 
-        if (selectedContact) {
-            // Send direct message
-            const message = {
-                senderUsername: user.username,
-                receiverUsername: selectedContact,
-                content: newMessage,
-            };
+        try {
+            if (selectedContact) {
+                // Send direct message using HTTP API (supports images)
+                const formData = new FormData();
+                formData.append('senderUsername', user.username);
+                formData.append('receiverUsername', selectedContact);
+                
+                if (newMessage.trim()) {
+                    formData.append('content', newMessage);
+                }
+                
+                if (selectedImage) {
+                    formData.append('image', selectedImage);
+                }
 
-            if (stompClient && stompClient.connected) {
-                stompClient.publish({
-                    destination: '/app/chat.direct',
-                    body: JSON.stringify(message),
-                });
-            } else {
-                console.error('WebSocket not connected!');
-                showNotification('Connection error. Please refresh the page.', 'error');
+                const response = await apiCallMultipart(API_ENDPOINTS.SEND_DIRECT_MESSAGE, formData);
+
+                if (response.ok) {
+                    const sentMessage = await response.json();
+                    
+                    // Add message to local state immediately
+                    setAllMessages(prev => ({
+                        ...prev,
+                        [selectedContact]: [...(prev[selectedContact] || []), sentMessage]
+                    }));
+                    setMessages(prev => [...prev, sentMessage]);
+                    
+                    showNotification('Message sent successfully!', 'success');
+                } else {
+                    const errorText = await response.text();
+                    showNotification(`Failed to send message: ${errorText}`, 'error');
+                }
+                
+            } else if (selectedGroup && selectedGroupInfo) {
+                // Send group message using HTTP API (supports images)
+                const groupId = selectedGroup.replace('group_', '');
+                const formData = new FormData();
+                formData.append('senderUsername', user.username);
+                
+                if (newMessage.trim()) {
+                    formData.append('content', newMessage);
+                }
+                
+                if (selectedImage) {
+                    formData.append('image', selectedImage);
+                }
+
+                const response = await apiCallMultipart(API_ENDPOINTS.SEND_GROUP_MESSAGE(groupId), formData);
+
+                if (response.ok) {
+                    const sentMessage = await response.json();
+                    
+                    // Add message to local state immediately
+                    setAllMessages(prev => ({
+                        ...prev,
+                        [selectedGroup]: [...(prev[selectedGroup] || []), sentMessage]
+                    }));
+                    setMessages(prev => [...prev, sentMessage]);
+                    
+                    showNotification('Message sent successfully!', 'success');
+                } else {
+                    const errorText = await response.text();
+                    showNotification(`Failed to send message: ${errorText}`, 'error');
+                }
             }
-        } else if (selectedGroup && selectedGroupInfo) {
-            // Send group message
-            const groupId = selectedGroup.replace('group_', '');
-            const message = {
-                senderUsername: user.username,
-                groupId: parseInt(groupId),
-                content: newMessage,
-            };
 
-            if (stompClient && stompClient.connected) {
-                stompClient.publish({
-                    destination: '/app/chat.group',
-                    body: JSON.stringify(message),
-                });
-            } else {
-                console.error('WebSocket not connected!');
-                showNotification('Connection error. Please refresh the page.', 'error');
-            }
+            // Clear input and image
+            setNewMessage('');
+            clearImage();
+            
+        } catch (error) {
+            console.error('Error sending message:', error);
+            showNotification('Failed to send message. Please try again.', 'error');
         }
-
-        setNewMessage('');
     };
     
     // Helper function to get user initials for avatar (for chat header)
@@ -436,6 +514,29 @@ function Chat({ user, onLogout }) {
         if (selectedContact) return getUserInitials(selectedContact);
         if (selectedGroupInfo) return getGroupInitials(selectedGroupInfo.name);
         return '';
+    };
+
+    // Render message content (text and/or image)
+    const renderMessageContent = (message) => {
+        return (
+            <div className="message-content-wrapper">
+                {message.image && (
+                    <div className="message-image">
+                        <img 
+                            src={API_ENDPOINTS.GET_IMAGE(message.image.id)} 
+                            alt={message.image.fileName}
+                            style={{ maxWidth: '300px', maxHeight: '200px', borderRadius: '8px' }}
+                            onError={(e) => {
+                                e.target.style.display = 'none';
+                            }}
+                        />
+                    </div>
+                )}
+                {message.content && (
+                    <div className="message-text">{message.content}</div>
+                )}
+            </div>
+        );
     };
 
     return (
@@ -524,7 +625,7 @@ function Chat({ user, onLogout }) {
                                                     {message.sender.username}
                                                 </div>
                                             )}
-                                            <div className="message-content">{message.content}</div>
+                                            {renderMessageContent(message)}
                                             <div className="message-time">
                                                 {new Date(message.timestamp).toLocaleTimeString()}
                                             </div>
@@ -534,7 +635,37 @@ function Chat({ user, onLogout }) {
                                 {/* Invisible element to scroll to */}
                                 <div ref={messagesEndRef} />
                             </div>
+                            
+                            {/* Image Preview */}
+                            {imagePreview && (
+                                <div className="image-preview">
+                                    <div className="image-preview-container">
+                                        <img src={imagePreview} alt="Preview" />
+                                        <button 
+                                            className="image-preview-close"
+                                            onClick={clearImage}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            
                             <div className="message-input">
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageSelect}
+                                    style={{ display: 'none' }}
+                                />
+                                <button 
+                                    className="image-button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    title="Add image"
+                                >
+                                    📷
+                                </button>
                                 <input
                                     type="text"
                                     value={newMessage}
@@ -544,7 +675,7 @@ function Chat({ user, onLogout }) {
                                 />
                                 <button 
                                     onClick={handleSendMessage}
-                                    disabled={!newMessage.trim()}
+                                    disabled={!newMessage.trim() && !selectedImage}
                                 >
                                     Send
                                 </button>
