@@ -2,6 +2,8 @@ package com.example.hackaton_chat.service;
 
 import com.example.hackaton_chat.model.GroupChat;
 import com.example.hackaton_chat.model.User;
+import com.example.hackaton_chat.dto.Notification;
+import com.example.hackaton_chat.dto.NotificationType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -20,7 +22,8 @@ public class MessagingService {
 
     // Send group creation notification to all participants
     public void notifyGroupCreated(GroupChat group, List<User> participants, String ownerUsername) {
-        GroupCreatedNotification notification = new GroupCreatedNotification(
+        Notification notification = Notification.createGroupNotification(
+            NotificationType.GROUP_CREATED,
             group.getId(),
             group.getName(),
             ownerUsername
@@ -36,7 +39,10 @@ public class MessagingService {
 
     // Send contact added notification
     public void notifyContactAdded(String username, String newContactUsername) {
-        ContactAddedNotification notification = new ContactAddedNotification(newContactUsername);
+        Notification notification = Notification.createContactNotification(
+            NotificationType.CONTACT_ADDED,
+            newContactUsername
+        );
         messagingTemplate.convertAndSend(
             "/queue/notifications-" + username,
             notification
@@ -45,7 +51,8 @@ public class MessagingService {
 
     // Send notification when user is added to a group
     public void notifyAddedToGroup(String username, GroupChat group, String ownerUsername) {
-        GroupCreatedNotification notification = new GroupCreatedNotification(
+        Notification notification = Notification.createGroupNotification(
+            NotificationType.GROUP_CREATED,
             group.getId(),
             group.getName(),
             ownerUsername
@@ -58,7 +65,8 @@ public class MessagingService {
 
     // Send notification when user is removed from a group
     public void notifyRemovedFromGroup(String username, GroupChat group, String ownerUsername) {
-        GroupRemovedNotification notification = new GroupRemovedNotification(
+        Notification notification = Notification.createGroupNotification(
+            NotificationType.GROUP_REMOVED,
             group.getId(),
             group.getName(),
             ownerUsername
@@ -71,7 +79,10 @@ public class MessagingService {
 
     // Send contact removed notification
     public void notifyContactRemoved(String username, String removedContactUsername) {
-        ContactRemovedNotification notification = new ContactRemovedNotification(removedContactUsername);
+        Notification notification = Notification.createContactNotification(
+            NotificationType.CONTACT_REMOVED,
+            removedContactUsername
+        );
         messagingTemplate.convertAndSend(
             "/queue/notifications-" + username,
             notification
@@ -108,98 +119,5 @@ public class MessagingService {
             "/queue/errors",
             error
         );
-    }
-
-    // Notification DTOs
-    public static class GroupCreatedNotification {
-        private String type = "GROUP_CREATED";
-        private Long groupId;
-        private String groupName;
-        private String ownerUsername;
-
-        public GroupCreatedNotification(Long groupId, String groupName, String ownerUsername) {
-            this.groupId = groupId;
-            this.groupName = groupName;
-            this.ownerUsername = ownerUsername;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public Long getGroupId() {
-            return groupId;
-        }
-
-        public String getGroupName() {
-            return groupName;
-        }
-
-        public String getOwnerUsername() {
-            return ownerUsername;
-        }
-    }
-
-    public static class GroupRemovedNotification {
-        private String type = "GROUP_REMOVED";
-        private Long groupId;
-        private String groupName;
-        private String ownerUsername;
-
-        public GroupRemovedNotification(Long groupId, String groupName, String ownerUsername) {
-            this.groupId = groupId;
-            this.groupName = groupName;
-            this.ownerUsername = ownerUsername;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public Long getGroupId() {
-            return groupId;
-        }
-
-        public String getGroupName() {
-            return groupName;
-        }
-
-        public String getOwnerUsername() {
-            return ownerUsername;
-        }
-    }
-
-    public static class ContactAddedNotification {
-        private String type = "CONTACT_ADDED";
-        private String contactUsername;
-
-        public ContactAddedNotification(String contactUsername) {
-            this.contactUsername = contactUsername;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public String getContactUsername() {
-            return contactUsername;
-        }
-    }
-
-    public static class ContactRemovedNotification {
-        private String type = "CONTACT_REMOVED";
-        private String contactUsername;
-
-        public ContactRemovedNotification(String contactUsername) {
-            this.contactUsername = contactUsername;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public String getContactUsername() {
-            return contactUsername;
-        }
     }
 } 
