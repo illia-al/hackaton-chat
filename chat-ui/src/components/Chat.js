@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { marked } from 'marked';
 import ContactsList from './ContactsList';
 import GroupChatsList from './GroupChatsList';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -21,13 +22,83 @@ function Chat({ user, onLogout }) {
     const [allMessages, setAllMessages] = useState({}); // Store messages per contact/group
     const [activeTab, setActiveTab] = useState('contacts'); // 'contacts' or 'groups'
     const [groupSubscriptions, setGroupSubscriptions] = useState(new Map()); // Track group subscriptions
+    const [isPreviewMode, setIsPreviewMode] = useState(false); // Preview formatted text
     const selectedContactRef = useRef(null);
     const selectedGroupRef = useRef(null);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
+    const messageInputRef = useRef(null);
 
     // Use global notification system
     const { showNotification } = useNotifications();
+
+    // Configure marked for safe HTML rendering
+    marked.setOptions({
+        breaks: true,
+        sanitize: false,
+        headerIds: false,
+        mangle: false
+    });
+
+    // Text formatting functions
+    const applyFormatting = (formatType) => {
+        const textarea = messageInputRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = newMessage.substring(start, end);
+        
+        let formattedText;
+        let newCursorPos;
+        
+        if (formatType === 'bold') {
+            if (selectedText) {
+                formattedText = `**${selectedText}**`;
+                newCursorPos = start + formattedText.length;
+            } else {
+                formattedText = '****';
+                newCursorPos = start + 2; // Position cursor between the asterisks
+            }
+        } else if (formatType === 'italic') {
+            if (selectedText) {
+                formattedText = `*${selectedText}*`;
+                newCursorPos = start + formattedText.length;
+            } else {
+                formattedText = '**';
+                newCursorPos = start + 1; // Position cursor between the asterisks
+            }
+        }
+
+        const newText = newMessage.substring(0, start) + formattedText + newMessage.substring(end);
+        setNewMessage(newText);
+
+        // Set cursor position after state update
+        setTimeout(() => {
+            textarea.focus();
+            if (selectedText) {
+                textarea.setSelectionRange(newCursorPos, newCursorPos);
+            } else {
+                textarea.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        }, 0);
+    };
+
+    const togglePreview = () => {
+        setIsPreviewMode(!isPreviewMode);
+    };
+
+    // Function to parse markdown and render as HTML
+    const parseMarkdown = (text) => {
+        if (!text) return '';
+        
+        // Simple markdown parsing for bold and italic
+        let parsed = text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+            .replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
+        
+        return parsed;
+    };
 
     // Scroll to bottom of messages
     const scrollToBottom = () => {
@@ -526,7 +597,10 @@ function Chat({ user, onLogout }) {
                     </div>
                 )}
                 {message.content && (
-                    <div className="message-text">{message.content}</div>
+                    <div 
+                        className="message-text"
+                        dangerouslySetInnerHTML={{ __html: parseMarkdown(message.content) }}
+                    />
                 )}
             </div>
         );
@@ -652,26 +726,84 @@ function Chat({ user, onLogout }) {
                                     onChange={handleImageSelect}
                                     style={{ display: 'none' }}
                                 />
-                                <button 
-                                    className="image-button"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    title="Add image"
-                                >
-                                    📷
-                                </button>
-                                <input
-                                    type="text"
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder="Type a message..."
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                />
-                                <button 
-                                    onClick={handleSendMessage}
-                                    disabled={!newMessage.trim() && !selectedImage}
-                                >
-                                    Send
-                                </button>
+                                
+                                {/* Formatting toolbar */}
+                                <div className="formatting-toolbar">
+                                    <button 
+                                        className="format-button"
+                                        onClick={() => applyFormatting('bold')}
+                                        title="Bold (**text**)"
+                                    >
+                                        <strong>B</strong>
+                                    </button>
+                                    <button 
+                                        className="format-button"
+                                        onClick={() => applyFormatting('italic')}
+                                        title="Italic (*text*)"
+                                    >
+                                        <em>I</em>
+                                    </button>
+                                    <button 
+                                        className="format-button"
+                                        onClick={togglePreview}
+                                        title="Preview formatted text"
+                                    >
+                                        👁️
+                                    </button>
+                                    <button 
+                                        className="image-button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        title="Add image"
+                                    >
+                                        📷
+                                    </button>
+                                </div>
+
+                                {/* Preview mode */}
+                                {isPreviewMode && newMessage.trim() && (
+                                    <div className="message-preview">
+                                        <div className="preview-label">Preview:</div>
+                                        <div 
+                                            className="preview-content"
+                                            dangerouslySetInnerHTML={{ __html: parseMarkdown(newMessage) }}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Message input */}
+                                <div className="input-row">
+                                    <textarea
+                                        ref={messageInputRef}
+                                        value={newMessage}
+                                        onChange={(e) => setNewMessage(e.target.value)}
+                                        placeholder="Type a message... Use **bold** and *italic* formatting"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                handleSendMessage();
+                                            }
+                                        }}
+                                        rows="1"
+                                        style={{ 
+                                            resize: 'none',
+                                            overflow: 'hidden',
+                                            minHeight: '40px',
+                                            maxHeight: '120px'
+                                        }}
+                                        onInput={(e) => {
+                                            // Auto-resize textarea
+                                            e.target.style.height = 'auto';
+                                            e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                                        }}
+                                    />
+                                    <button 
+                                        onClick={handleSendMessage}
+                                        disabled={!newMessage.trim() && !selectedImage}
+                                        className="send-button"
+                                    >
+                                        Send
+                                    </button>
+                                </div>
                             </div>
                         </>
                     ) : (
