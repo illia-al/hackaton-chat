@@ -109,4 +109,19 @@ public class ChatService {
     public List<Message> searchMessages(User user, String query) {
         return messageRepository.searchMessages(user.getId(), query);
     }
+
+    public List<Message> getConversation(User user1, User user2) {
+        // Get messages where user1 is sender and user2 is receiver
+        List<Message> messages1 = messageRepository.findBySenderAndReceiver(user1, user2);
+        // Get messages where user2 is sender and user1 is receiver
+        List<Message> messages2 = messageRepository.findBySenderAndReceiver(user2, user1);
+        
+        // Combine both lists
+        messages1.addAll(messages2);
+        
+        // Sort by timestamp
+        messages1.sort((m1, m2) -> m1.getTimestamp().compareTo(m2.getTimestamp()));
+        
+        return messages1;
+    }
 } 

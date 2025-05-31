@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
@@ -12,6 +12,13 @@ function Chat({ user, onLogout }) {
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
     const [notifications, setNotifications] = useState([]);
+    const [allMessages, setAllMessages] = useState({}); // Store messages per contact
+    const selectedContactRef = useRef(null);
+
+    // Keep ref in sync with state
+    useEffect(() => {
+        selectedContactRef.current = selectedContact;
+    }, [selectedContact]);
 
     const showNotification = (message, type = 'success') => {
         const id = Date.now();
@@ -42,10 +49,38 @@ function Chat({ user, onLogout }) {
                 webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
                 onConnect: () => {
                     console.log('Connected to WebSocket');
-                    client.subscribe(`/user/${user.username}/queue/messages`, (message) => {
+                    
+                    // Main subscription for user messages
+                    client.subscribe(`/queue/messages-${user.username}`, (message) => {
                         const newMessage = JSON.parse(message.body);
-                        setMessages(prev => [...prev, newMessage]);
+                        
+                        // Add message to appropriate conversation
+                        const contactUsername = newMessage.sender.username === user.username 
+                            ? newMessage.receiver.username 
+                            : newMessage.sender.username;
+                        
+                        setAllMessages(prev => ({
+                            ...prev,
+                            [contactUsername]: [...(prev[contactUsername] || []), newMessage]
+                        }));
+                        
+                        // Update current messages if this contact is selected
+                        if (selectedContactRef.current === contactUsername) {
+                            setMessages(prev => [...prev, newMessage]);
+                        }
                     });
+                    
+                    // Subscribe to error queue
+                    client.subscribe(`/user/${user.username}/queue/errors`, (error) => {
+                        console.error('WebSocket error:', error.body);
+                        showNotification(`Error: ${error.body}`, 'error');
+                    });
+                },
+                onDisconnect: () => {
+                    console.log('Disconnected from WebSocket');
+                },
+                onStompError: (frame) => {
+                    console.error('STOMP error:', frame);
                 },
             });
 
@@ -159,6 +194,37 @@ function Chat({ user, onLogout }) {
         return () => clearTimeout(timeoutId);
     }, [searchQuery, contacts]);
 
+    const loadConversation = async (contactUsername) => {
+        try {
+            const response = await fetch(`http://localhost:8080/api/chat/messages/${user.username}/${contactUsername}`);
+            if (response.ok) {
+                const conversationMessages = await response.json();
+                setAllMessages(prev => ({
+                    ...prev,
+                    [contactUsername]: conversationMessages
+                }));
+                setMessages(conversationMessages);
+            } else {
+                console.error('Failed to load conversation');
+                setMessages([]);
+            }
+        } catch (error) {
+            console.error('Error loading conversation:', error);
+            setMessages([]);
+        }
+    };
+
+    const handleContactSelect = (contactUsername) => {
+        setSelectedContact(contactUsername);
+        
+        // Load conversation if not already loaded
+        if (!allMessages[contactUsername]) {
+            loadConversation(contactUsername);
+        } else {
+            setMessages(allMessages[contactUsername]);
+        }
+    };
+
     const handleSendMessage = () => {
         if (!newMessage.trim() || !selectedContact) return;
 
@@ -168,10 +234,15 @@ function Chat({ user, onLogout }) {
             content: newMessage,
         };
 
-        stompClient.publish({
-            destination: '/app/chat.direct',
-            body: JSON.stringify(message),
-        });
+        if (stompClient && stompClient.connected) {
+            stompClient.publish({
+                destination: '/app/chat.direct',
+                body: JSON.stringify(message),
+            });
+        } else {
+            console.error('WebSocket not connected!');
+            showNotification('Connection error. Please refresh the page.', 'error');
+        }
 
         setNewMessage('');
     };
@@ -324,7 +395,7 @@ function Chat({ user, onLogout }) {
                                             backgroundColor: selectedContact === contact ? '#f0f7ff' : 'white',
                                             cursor: 'pointer'
                                         }}
-                                        onClick={() => setSelectedContact(contact)}
+                                        onClick={() => handleContactSelect(contact)}
                                     >
                                         <span style={{ fontSize: '0.875rem', fontWeight: selectedContact === contact ? 'bold' : 'normal' }}>
                                             {contact}
@@ -378,7 +449,7 @@ function Chat({ user, onLogout }) {
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
                                     placeholder="Type a message..."
-                                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                                 />
                                 <button onClick={handleSendMessage}>Send</button>
                             </div>

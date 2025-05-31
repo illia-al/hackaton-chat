@@ -29,9 +29,15 @@ public class ChatWebSocketController {
                 chatMessage.getContent()
             );
             
-            messagingTemplate.convertAndSendToUser(
-                chatMessage.getReceiverUsername(),
-                "/queue/messages",
+            // Send message to receiver using direct queue destination
+            messagingTemplate.convertAndSend(
+                "/queue/messages-" + chatMessage.getReceiverUsername(),
+                message
+            );
+            
+            // Send message to sender as well for real-time confirmation
+            messagingTemplate.convertAndSend(
+                "/queue/messages-" + chatMessage.getSenderUsername(),
                 message
             );
         } catch (Exception e) {

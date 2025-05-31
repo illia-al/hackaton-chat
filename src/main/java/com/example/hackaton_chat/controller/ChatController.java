@@ -104,4 +104,21 @@ public class ChatController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/messages/{username}/{contactUsername}")
+    public ResponseEntity<?> getConversation(
+            @PathVariable String username,
+            @PathVariable String contactUsername) {
+        try {
+            User user = userService.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+            User contact = userService.findByUsername(contactUsername)
+                .orElseThrow(() -> new RuntimeException("Contact not found"));
+            
+            List<Message> messages = chatService.getConversation(user, contact);
+            return ResponseEntity.ok(messages);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 } 
