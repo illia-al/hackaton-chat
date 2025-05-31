@@ -5,15 +5,8 @@ const getApiBaseUrl = () => {
         return process.env.REACT_APP_API_BASE_URL;
     }
     
-    // Fallback based on environment
-    if (process.env.NODE_ENV === 'production') {
-        return 'https://api.yourapp.com'; // Replace with your production URL
-    } else if (process.env.NODE_ENV === 'staging') {
-        return 'https://staging-api.yourapp.com'; // Replace with your staging URL
-    } else {
-        // Development environment
-        return 'http://localhost:8080';
-    }
+    // Fallback to localhost if no environment variable is set
+    return 'http://localhost:8080';
 };
 
 const API_BASE_URL = getApiBaseUrl();

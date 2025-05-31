@@ -1,0 +1,52 @@
+# Git
+.git
+.gitignore
+.gitattributes
+.gitconfig
+
+# IDE
+.idea
+.vscode
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+target/
+*.jar
+*.war
+*.ear
+
+# Node.js (frontend)
+chat-ui/
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Documentation
+README.md
+*.md
+
+# Docker
+Dockerfile*
+docker-compose*
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Test files
+src/test/
+
+# Maven wrapper (we copy it explicitly)
+!.mvn/
+!mvnw
+!mvnw.cmd 

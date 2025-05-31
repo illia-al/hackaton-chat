@@ -17,20 +17,43 @@ A real-time chat application built with Spring Boot and React.js, featuring dire
 - Node.js 14 or higher
 - PostgreSQL
 - RabbitMQ
+- Docker and Docker Compose (for containerized setup)
 
 ## Setup
 
-### Database Setup
+### Option 1: Docker Compose Setup (Recommended)
+
+1. Make sure Docker and Docker Compose are installed
+2. From the project root directory, run:
+   ```bash
+   docker-compose up --build
+   ```
+3. The application will be available at:
+   - Frontend: http://localhost:3000
+   - Backend: http://localhost:8080
+   - RabbitMQ Management: http://localhost:15672 (guest/guest)
+
+To stop the application:
+```bash
+docker-compose down
+```
+
+For more detailed information on the Docker setup, including development and production configurations, see [DOCKER_README.md](./DOCKER_README.md).
+
+
+### Option 2: Manual Setup
+
+#### Database Setup
 
 1. Create a PostgreSQL database named `chat_db`
 2. Update the database credentials in `src/main/resources/application.properties` if needed
 
-### RabbitMQ Setup
+#### RabbitMQ Setup
 
 1. Install and start RabbitMQ server
 2. Update the RabbitMQ credentials in `src/main/resources/application.properties` if needed
 
-### Backend Setup
+#### Backend Setup
 
 1. Navigate to the project root directory
 2. Build the project:
@@ -42,7 +65,7 @@ A real-time chat application built with Spring Boot and React.js, featuring dire
    ./mvnw spring-boot:run
    ```
 
-### Frontend Setup
+#### Frontend Setup
 
 1. Navigate to the chat-ui directory:
    ```bash
@@ -85,3 +108,21 @@ The application will be available at:
 ## Contact API
 
 See [Contact API Documentation](CONTACT_API_DOCUMENTATION.md) for detailed information about contact management endpoints.
+
+## Docker Environment Variables
+
+The application uses the following environment variables in Docker:
+
+```yaml
+# Frontend
+REACT_APP_API_BASE_URL: http://localhost:8080
+
+# Backend
+SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/chat_db
+SPRING_DATASOURCE_USERNAME: postgres
+SPRING_DATASOURCE_PASSWORD: postgres
+SPRING_RABBITMQ_HOST: rabbitmq
+SPRING_RABBITMQ_PORT: 5672
+SPRING_RABBITMQ_USERNAME: guest
+SPRING_RABBITMQ_PASSWORD: guest
+```
