@@ -1,0 +1,82 @@
+.notifications-container {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 350px;
+    pointer-events: none; /* Allow clicking through container */
+}
+
+.notification {
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    position: relative;
+    cursor: pointer;
+    animation: slideInFromLeft 0.3s ease-out;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    pointer-events: auto; /* Re-enable pointer events for notifications */
+    backdrop-filter: blur(10px);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.notification:hover {
+    transform: translateX(5px);
+    opacity: 0.9;
+}
+
+.notification.success {
+    background-color: #10b981;
+}
+
+.notification.error {
+    background-color: #ef4444;
+}
+
+.notification.info {
+    background-color: #3b82f6;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.notification-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+@keyframes slideInFromLeft {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Fade out animation */
+.notification.removing {
+    animation: fadeOutLeft 0.3s ease-out forwards;
+}
+
+@keyframes fadeOutLeft {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+} 

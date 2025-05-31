@@ -1,26 +1,28 @@
 import React, { useState } from 'react';
+import { useNotifications } from '../contexts/NotificationContext';
+import { API_ENDPOINTS, apiCall } from '../config/api';
+import './Register.css';
 
 function Register({ onRegister, onSwitchToLogin }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const { showNotification } = useNotifications();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setIsLoading(true);
 
         if (password !== confirmPassword) {
-            setError('Passwords do not match');
+            showNotification('Passwords do not match', 'error');
+            setIsLoading(false);
             return;
         }
 
         try {
-            const response = await fetch('http://localhost:8080/api/auth/register', {
+            const response = await apiCall(API_ENDPOINTS.REGISTER, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({ username, password, confirmPassword }),
             });
 
@@ -30,15 +32,18 @@ function Register({ onRegister, onSwitchToLogin }) {
             }
 
             const user = await response.json();
+            showNotification(`Account created successfully! Welcome, ${user.username}!`, 'success');
             onRegister(user);
         } catch (err) {
-            setError(err.message);
+            showNotification(err.message, 'error');
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className="App">
-            <div className="auth-container">
+        <div className="register-container">
+            <div className="register-form">
                 <h2>Create your account</h2>
                 <form onSubmit={handleSubmit}>
                     <input
@@ -47,6 +52,7 @@ function Register({ onRegister, onSwitchToLogin }) {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         required
+                        disabled={isLoading}
                     />
                     <input
                         type="password"
@@ -54,6 +60,7 @@ function Register({ onRegister, onSwitchToLogin }) {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
+                        disabled={isLoading}
                     />
                     <input
                         type="password"
@@ -61,25 +68,16 @@ function Register({ onRegister, onSwitchToLogin }) {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
+                        disabled={isLoading}
                     />
-                    {error && (
-                        <div style={{ color: 'red', fontSize: '14px', textAlign: 'center', marginBottom: '1rem' }}>
-                            {error}
-                        </div>
-                    )}
-                    <button type="submit">Register</button>
+                    <button type="submit" disabled={isLoading}>
+                        {isLoading ? 'Creating account...' : 'Register'}
+                    </button>
                 </form>
-                <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <div className="register-switch">
                     <button
                         onClick={onSwitchToLogin}
-                        style={{ 
-                            background: 'none', 
-                            border: 'none', 
-                            color: '#1a73e8', 
-                            textDecoration: 'underline', 
-                            cursor: 'pointer',
-                            fontSize: '14px'
-                        }}
+                        disabled={isLoading}
                     >
                         Already have an account? Sign in
                     </button>

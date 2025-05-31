@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
+import { useNotifications } from '../contexts/NotificationContext';
+import { API_ENDPOINTS, apiCall } from '../config/api';
+import './Login.css';
 
 function Login({ onLogin, onSwitchToRegister }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const { showNotification } = useNotifications();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setIsLoading(true);
 
         try {
-            const response = await fetch('http://localhost:8080/api/auth/login', {
+            const response = await apiCall(API_ENDPOINTS.LOGIN, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({ username, password }),
             });
 
@@ -24,15 +25,18 @@ function Login({ onLogin, onSwitchToRegister }) {
             }
 
             const user = await response.json();
+            showNotification(`Welcome back, ${user.username}!`, 'success');
             onLogin(user);
         } catch (err) {
-            setError(err.message);
+            showNotification(err.message, 'error');
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className="App">
-            <div className="auth-container">
+        <div className="login-container">
+            <div className="login-form">
                 <h2>Sign in to your account</h2>
                 <form onSubmit={handleSubmit}>
                     <input
@@ -41,6 +45,7 @@ function Login({ onLogin, onSwitchToRegister }) {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         required
+                        disabled={isLoading}
                     />
                     <input
                         type="password"
@@ -48,25 +53,16 @@ function Login({ onLogin, onSwitchToRegister }) {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
+                        disabled={isLoading}
                     />
-                    {error && (
-                        <div style={{ color: 'red', fontSize: '14px', textAlign: 'center', marginBottom: '1rem' }}>
-                            {error}
-                        </div>
-                    )}
-                    <button type="submit">Sign in</button>
+                    <button type="submit" disabled={isLoading}>
+                        {isLoading ? 'Signing in...' : 'Sign in'}
+                    </button>
                 </form>
-                <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <div className="login-switch">
                     <button
                         onClick={onSwitchToRegister}
-                        style={{ 
-                            background: 'none', 
-                            border: 'none', 
-                            color: '#1a73e8', 
-                            textDecoration: 'underline', 
-                            cursor: 'pointer',
-                            fontSize: '14px'
-                        }}
+                        disabled={isLoading}
                     >
                         Don't have an account? Register
                     </button>

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import Login from './components/Login';
 import Register from './components/Register';
 import Chat from './components/Chat';
+import Notifications from './components/Notifications';
+import { NotificationProvider } from './contexts/NotificationContext';
 import './App.css';
 
 function App() {
@@ -13,25 +15,32 @@ function App() {
     setShowLogin(true);
   };
 
-  if (!user) {
-    return showLogin ? (
-      <Login 
-        onLogin={setUser} 
-        onSwitchToRegister={() => setShowLogin(false)} 
-      />
-    ) : (
-      <Register 
-        onRegister={setUser} 
-        onSwitchToLogin={() => setShowLogin(true)} 
-      />
-    );
-  }
-
   return (
-    <Chat 
-      user={user} 
-      onLogout={handleLogout} 
-    />
+    <NotificationProvider>
+      <div className={user ? 'App chat-mode' : 'App'}>
+        {!user ? (
+          showLogin ? (
+            <Login 
+              onLogin={setUser} 
+              onSwitchToRegister={() => setShowLogin(false)} 
+            />
+          ) : (
+            <Register 
+              onRegister={setUser} 
+              onSwitchToLogin={() => setShowLogin(true)} 
+            />
+          )
+        ) : (
+          <Chat 
+            user={user} 
+            onLogout={handleLogout} 
+          />
+        )}
+        
+        {/* Global notification system */}
+        <Notifications />
+      </div>
+    </NotificationProvider>
   );
 }
 
