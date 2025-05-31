@@ -1,18 +1,25 @@
 package com.example.hackaton_chat.service;
 
 import com.example.hackaton_chat.model.User;
+import com.example.hackaton_chat.model.UserContact;
 import com.example.hackaton_chat.repository.UserRepository;
+import com.example.hackaton_chat.repository.UserContactRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private UserContactRepository userContactRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -46,14 +53,17 @@ public class UserService {
         User contact = userRepository.findByUsername(contactUsername)
             .orElseThrow(() -> new RuntimeException("Contact not found"));
 
-        if (user.getContacts().contains(contact)) {
+        // Check if contact relationship already exists
+        Optional<UserContact> existingContact = userContactRepository
+            .findByUserIdAndContactId(user.getId(), contact.getId());
+        
+        if (existingContact.isPresent()) {
             throw new RuntimeException("Contact already exists");
         }
 
-        user.getContacts().add(contact);
-        contact.getContacts().add(user);
-        userRepository.save(user);
-        userRepository.save(contact);
+        // Create bidirectional contact relationship
+        userContactRepository.save(new UserContact(user.getId(), contact.getId()));
+        userContactRepository.save(new UserContact(contact.getId(), user.getId()));
     }
 
     @Transactional
@@ -61,13 +71,39 @@ public class UserService {
         User contact = userRepository.findByUsername(contactUsername)
             .orElseThrow(() -> new RuntimeException("Contact not found"));
 
-        user.getContacts().remove(contact);
-        contact.getContacts().remove(user);
-        userRepository.save(user);
-        userRepository.save(contact);
+        // Remove bidirectional contact relationship
+        userContactRepository.deleteBidirectionalContact(user.getId(), contact.getId());
+    }
+
+    public boolean isContact(User user, String contactUsername) {
+        User contact = userRepository.findByUsername(contactUsername).orElse(null);
+        if (contact == null) {
+            return false;
+        }
+        
+        return userContactRepository
+            .findByUserIdAndContactId(user.getId(), contact.getId())
+            .isPresent();
+    }
+
+    public List<User> getContacts(User user) {
+        List<UserContact> userContacts = userContactRepository.findByUserId(user.getId());
+        List<Long> contactIds = userContacts.stream()
+            .map(UserContact::getContactId)
+            .collect(Collectors.toList());
+        
+        return userRepository.findAllById(contactIds);
+    }
+
+    public List<User> searchUsers(String query) {
+        return userRepository.findByUsernameContainingIgnoreCase(query);
     }
 
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
+    }
+
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
     }
 } 

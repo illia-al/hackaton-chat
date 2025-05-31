@@ -20,7 +20,8 @@ public class AuthController {
 
         try {
             User user = userService.registerUser(request.getUsername(), request.getPassword());
-            return ResponseEntity.ok(user);
+            UserResponse userResponse = new UserResponse(user.getId(), user.getUsername());
+            return ResponseEntity.ok(userResponse);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -30,12 +31,41 @@ public class AuthController {
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest request) {
         try {
             User user = userService.loginUser(request.getUsername(), request.getPassword());
-            return ResponseEntity.ok(user);
+            UserResponse userResponse = new UserResponse(user.getId(), user.getUsername());
+            return ResponseEntity.ok(userResponse);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
+    // Response DTO
+    private static class UserResponse {
+        private Long id;
+        private String username;
+
+        public UserResponse(Long id, String username) {
+            this.id = id;
+            this.username = username;
+        }
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+    }
+
+    // Request DTOs
     private static class RegisterRequest {
         private String username;
         private String password;

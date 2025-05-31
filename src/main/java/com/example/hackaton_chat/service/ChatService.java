@@ -19,12 +19,18 @@ public class ChatService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private GroupChatService groupChatService;
+
     @Transactional
     public Message sendDirectMessage(User sender, String receiverUsername, String content) {
         User receiver = userRepository.findByUsername(receiverUsername)
             .orElseThrow(() -> new RuntimeException("Receiver not found"));
 
-        if (!sender.getContacts().contains(receiver)) {
+        if (!userService.isContact(sender, receiverUsername)) {
             throw new RuntimeException("Cannot send message to non-contact");
         }
 
@@ -41,18 +47,25 @@ public class ChatService {
             throw new RuntimeException("Group chat cannot have more than 300 participants");
         }
 
-        GroupChat groupChat = new GroupChat();
-        groupChat.setName(name);
-        groupChat.setOwner(owner);
-        groupChat.getParticipants().add(owner);
+        // Create the group using GroupChatService
+        GroupChat groupChat = groupChatService.createGroupChat(name, owner.getId());
 
+        // Add participants
         for (String username : participantUsernames) {
             User participant = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
-            groupChat.getParticipants().add(participant);
+            
+            try {
+                groupChatService.addParticipant(groupChat.getId(), participant.getId());
+            } catch (RuntimeException e) {
+                // Skip if user is already a participant (owner is automatically added)
+                if (!e.getMessage().contains("already a participant")) {
+                    throw e;
+                }
+            }
         }
 
-        return groupChatRepository.save(groupChat);
+        return groupChat;
     }
 
     @Transactional
@@ -60,7 +73,12 @@ public class ChatService {
         GroupChat groupChat = groupChatRepository.findById(groupId)
             .orElseThrow(() -> new RuntimeException("Group chat not found"));
 
-        if (!groupChat.getParticipants().contains(sender)) {
+        // Check if user is a participant using GroupChatService
+        List<User> participants = groupChatService.getGroupParticipants(groupId);
+        boolean isParticipant = participants.stream()
+            .anyMatch(participant -> participant.getId().equals(sender.getId()));
+
+        if (!isParticipant) {
             throw new RuntimeException("User is not a participant of this group");
         }
 
@@ -76,27 +94,19 @@ public class ChatService {
         GroupChat groupChat = groupChatRepository.findById(groupId)
             .orElseThrow(() -> new RuntimeException("Group chat not found"));
 
-        if (groupChat.getOwner().equals(user)) {
+        if (groupChat.getOwnerId().equals(user.getId())) {
             throw new RuntimeException("Group owner cannot leave the group");
         }
 
-        groupChat.getParticipants().remove(user);
-        groupChatRepository.save(groupChat);
+        groupChatService.removeParticipant(groupId, user.getId());
     }
 
     @Transactional
     public void deleteGroupChat(User user, Long groupId) {
-        GroupChat groupChat = groupChatRepository.findById(groupId)
-            .orElseThrow(() -> new RuntimeException("Group chat not found"));
-
-        if (!groupChat.getOwner().equals(user)) {
-            throw new RuntimeException("Only group owner can delete the group");
-        }
-
-        groupChatRepository.delete(groupChat);
+        groupChatService.deleteGroup(groupId, user.getId());
     }
 
     public List<Message> searchMessages(User user, String query) {
-        return messageRepository.searchMessages(user, query);
+        return messageRepository.searchMessages(user.getId(), query);
     }
 } 

@@ -81,3 +81,7 @@ The application will be available at:
 - `/app/chat.group` - Send group messages
 - `/user/{username}/queue/messages` - Receive messages
 - `/topic/group.{groupId}` - Receive group messages 
+
+## Contact API
+
+See [Contact API Documentation](CONTACT_API_DOCUMENTATION.md) for detailed information about contact management endpoints.

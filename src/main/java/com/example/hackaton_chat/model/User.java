@@ -1,9 +1,8 @@
 package com.example.hackaton_chat.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
-import java.util.HashSet;
-import java.util.Set;
 
 @Data
 @Entity
@@ -17,19 +16,6 @@ public class User {
     private String username;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
-
-    @ManyToMany
-    @JoinTable(
-        name = "user_contacts",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "contact_id")
-    )
-    private Set<User> contacts = new HashSet<>();
-
-    @ManyToMany(mappedBy = "participants")
-    private Set<GroupChat> groupChats = new HashSet<>();
-
-    @OneToMany(mappedBy = "owner")
-    private Set<GroupChat> ownedGroups = new HashSet<>();
 } 
