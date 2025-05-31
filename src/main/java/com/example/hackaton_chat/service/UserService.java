@@ -30,6 +30,18 @@ public class UserService {
     }
 
     @Transactional
+    public User loginUser(String username, String password) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Invalid password");
+        }
+
+        return user;
+    }
+
+    @Transactional
     public void addContact(User user, String contactUsername) {
         User contact = userRepository.findByUsername(contactUsername)
             .orElseThrow(() -> new RuntimeException("Contact not found"));

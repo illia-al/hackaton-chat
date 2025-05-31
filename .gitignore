@@ -31,3 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
+.gitconfig
+/.DS_Store
