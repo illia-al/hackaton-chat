@@ -469,15 +469,8 @@ function Chat({ user, onLogout }) {
                 const response = await apiCallMultipart(API_ENDPOINTS.SEND_GROUP_MESSAGE(groupId), formData);
 
                 if (response.ok) {
-                    const sentMessage = await response.json();
-                    
-                    // Add message to local state immediately
-                    setAllMessages(prev => ({
-                        ...prev,
-                        [selectedGroup]: [...(prev[selectedGroup] || []), sentMessage]
-                    }));
-                    setMessages(prev => [...prev, sentMessage]);
-                    
+                    // Don't add message to local state immediately for group messages
+                    // The WebSocket subscription will handle it for all group members including sender
                     showNotification('Message sent successfully!', 'success');
                 } else {
                     const errorText = await response.text();
