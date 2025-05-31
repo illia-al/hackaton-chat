@@ -24,6 +24,9 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private MessagingService messagingService;
+
     @Transactional
     public User registerUser(String username, String password) {
         if (userRepository.existsByUsername(username)) {
@@ -64,6 +67,10 @@ public class UserService {
         // Create bidirectional contact relationship
         userContactRepository.save(new UserContact(user.getId(), contact.getId()));
         userContactRepository.save(new UserContact(contact.getId(), user.getId()));
+
+        // Send WebSocket notifications to both users about the new contact
+        messagingService.notifyContactAdded(user.getUsername(), contactUsername);
+        messagingService.notifyContactAdded(contactUsername, user.getUsername());
     }
 
     @Transactional
@@ -73,6 +80,10 @@ public class UserService {
 
         // Remove bidirectional contact relationship
         userContactRepository.deleteBidirectionalContact(user.getId(), contact.getId());
+
+        // Send WebSocket notifications to both users about the contact removal
+        messagingService.notifyContactRemoved(user.getUsername(), contactUsername);
+        messagingService.notifyContactRemoved(contactUsername, user.getUsername());
     }
 
     public boolean isContact(User user, String contactUsername) {

@@ -124,4 +124,16 @@ public class ChatService {
         
         return messages1;
     }
+
+    public List<Message> getGroupMessages(Long groupId) {
+        GroupChat groupChat = groupChatRepository.findById(groupId)
+            .orElseThrow(() -> new RuntimeException("Group chat not found"));
+        
+        List<Message> messages = messageRepository.findByGroupChat(groupChat);
+        
+        // Sort by timestamp
+        messages.sort((m1, m2) -> m1.getTimestamp().compareTo(m2.getTimestamp()));
+        
+        return messages;
+    }
 } 

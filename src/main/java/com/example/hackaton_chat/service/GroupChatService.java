@@ -25,6 +25,12 @@ public class GroupChatService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private MessagingService messagingService;
+
     @Transactional
     public GroupChat createGroupChat(String name, Long ownerId) {
         GroupChat groupChat = new GroupChat();
@@ -34,6 +40,12 @@ public class GroupChatService {
 
         // Add owner as participant
         groupParticipantRepository.save(new GroupParticipant(savedGroup.getId(), ownerId));
+
+        // Send WebSocket notification to all participants (initially just the owner)
+        List<User> participants = getGroupParticipants(savedGroup.getId());
+        User owner = userService.findById(ownerId).orElse(null);
+        String ownerUsername = owner != null ? owner.getUsername() : "Unknown";
+        messagingService.notifyGroupCreated(savedGroup, participants, ownerUsername);
 
         return savedGroup;
     }
@@ -57,6 +69,11 @@ public class GroupChatService {
         }
 
         groupParticipantRepository.save(new GroupParticipant(groupId, userId));
+
+        // Send WebSocket notification to the newly added user
+        User owner = userService.findById(group.getOwnerId()).orElse(null);
+        String ownerUsername = owner != null ? owner.getUsername() : "Unknown";
+        messagingService.notifyAddedToGroup(user.getUsername(), group, ownerUsername);
     }
 
     @Transactional
@@ -69,7 +86,16 @@ public class GroupChatService {
             throw new RuntimeException("Cannot remove group owner");
         }
 
+        // Get user info before removing to send notification
+        User removedUser = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        User owner = userService.findById(group.getOwnerId()).orElse(null);
+        String ownerUsername = owner != null ? owner.getUsername() : "Unknown";
+
         groupParticipantRepository.deleteByGroupIdAndUserId(groupId, userId);
+
+        // Send WebSocket notification to the removed user
+        messagingService.notifyRemovedFromGroup(removedUser.getUsername(), group, ownerUsername);
     }
 
     public List<User> getGroupParticipants(Long groupId) {

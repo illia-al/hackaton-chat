@@ -46,6 +46,17 @@ export const API_ENDPOINTS = {
     // Chat
     CHAT_MESSAGES: (username, contactUsername) => `${API_BASE_URL}/api/chat/messages/${username}/${contactUsername}`,
     
+    // Groups
+    GROUPS: {
+        CREATE: `${API_BASE_URL}/api/groups/create`,
+        USER_GROUPS: (username) => `${API_BASE_URL}/api/groups/user/${username}`,
+        PARTICIPANTS: (groupId) => `${API_BASE_URL}/api/groups/${groupId}/participants`,
+        ADD_PARTICIPANT: (groupId) => `${API_BASE_URL}/api/groups/${groupId}/participants/add`,
+        REMOVE_PARTICIPANT: (groupId) => `${API_BASE_URL}/api/groups/${groupId}/participants/remove`,
+        DELETE: (groupId, requesterUsername) => `${API_BASE_URL}/api/groups/${groupId}?requesterUsername=${encodeURIComponent(requesterUsername)}`,
+        MESSAGES: (groupId) => `${API_BASE_URL}/api/chat/group/${groupId}/messages`,
+    },
+    
     // SockJS endpoint (HTTP/HTTPS URL for SockJS)
     SOCKJS: SOCKJS_URL
 };

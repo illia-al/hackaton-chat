@@ -39,6 +39,7 @@ public class ContactController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
             
             userService.addContact(user, request.getContactUsername());
+            
             return ResponseEntity.ok("Contact added successfully");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

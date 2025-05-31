@@ -121,4 +121,14 @@ public class ChatController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/group/{groupId}/messages")
+    public ResponseEntity<?> getGroupMessages(@PathVariable Long groupId) {
+        try {
+            List<Message> messages = chatService.getGroupMessages(groupId);
+            return ResponseEntity.ok(messages);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 } 

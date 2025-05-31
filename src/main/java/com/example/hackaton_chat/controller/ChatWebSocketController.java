@@ -1,18 +1,22 @@
 package com.example.hackaton_chat.controller;
 
 import com.example.hackaton_chat.model.Message;
+import com.example.hackaton_chat.model.User;
+import com.example.hackaton_chat.model.GroupChat;
 import com.example.hackaton_chat.service.ChatService;
 import com.example.hackaton_chat.service.UserService;
+import com.example.hackaton_chat.service.MessagingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
+
+import java.util.List;
 
 @Controller
 public class ChatWebSocketController {
     @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private MessagingService messagingService;
 
     @Autowired
     private ChatService chatService;
@@ -29,21 +33,14 @@ public class ChatWebSocketController {
                 chatMessage.getContent()
             );
             
-            // Send message to receiver using direct queue destination
-            messagingTemplate.convertAndSend(
-                "/queue/messages-" + chatMessage.getReceiverUsername(),
-                message
-            );
-            
-            // Send message to sender as well for real-time confirmation
-            messagingTemplate.convertAndSend(
-                "/queue/messages-" + chatMessage.getSenderUsername(),
-                message
+            messagingService.sendDirectMessage(
+                message,
+                chatMessage.getSenderUsername(),
+                chatMessage.getReceiverUsername()
             );
         } catch (Exception e) {
-            messagingTemplate.convertAndSendToUser(
+            messagingService.sendErrorToUser(
                 chatMessage.getSenderUsername(),
-                "/queue/errors",
                 e.getMessage()
             );
         }
@@ -58,14 +55,10 @@ public class ChatWebSocketController {
                 chatMessage.getContent()
             );
             
-            messagingTemplate.convertAndSend(
-                "/topic/group." + chatMessage.getGroupId(),
-                message
-            );
+            messagingService.sendGroupMessage(message, chatMessage.getGroupId());
         } catch (Exception e) {
-            messagingTemplate.convertAndSendToUser(
+            messagingService.sendErrorToUser(
                 chatMessage.getSenderUsername(),
-                "/queue/errors",
                 e.getMessage()
             );
         }

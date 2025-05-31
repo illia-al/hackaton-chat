@@ -221,4 +221,91 @@
     color: #6b7280;
     font-size: 1.125rem;
     font-weight: 500;
+}
+
+/* Tab Navigation Styles */
+.tab-navigation {
+    display: flex;
+    background-color: white;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+
+.tab-button {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    transition: all 0.2s ease;
+    border-bottom: 2px solid transparent;
+}
+
+.tab-button:hover {
+    background-color: #f9fafb;
+    color: #374151;
+}
+
+.tab-button.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+    background-color: #f8fafc;
+}
+
+/* Tab Content */
+.tab-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Group Chat Specific Styles */
+.group-indicator {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.message-sender {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6366f1;
+    margin-bottom: 0.25rem;
+}
+
+.message.received .message-sender {
+    color: #6366f1;
+}
+
+.message.sent .message-sender {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .chat-container {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        height: 50vh;
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .chat-window {
+        height: 50vh;
+    }
+    
+    .tab-button {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
 } 

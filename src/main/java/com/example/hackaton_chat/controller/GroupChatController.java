@@ -77,6 +77,7 @@ public class GroupChatController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
             groupChatService.addParticipant(groupId, user.getId());
+            
             return ResponseEntity.ok("Participant added successfully");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
